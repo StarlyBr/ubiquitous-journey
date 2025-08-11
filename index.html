@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #4a5568;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #e53e3e;
+            transition: background-color 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background-color: #48bb78;
+        }
+
+        .messages-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f7fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.received {
+            background: white;
+            border: 1px solid #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.sent {
+            background: #4299e1;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-header {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .message.received .message-header {
+            color: #4a5568;
+        }
+
+        .message.sent .message-header {
+            color: #90cdf4;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-area input:focus {
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .input-area button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .input-area button:hover {
+            background: #3182ce;
+        }
+
+        .input-area button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #718096;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .no-messages {
+            color: #718096;
+            text-align: center;
+            font-style: italic;
+            margin: 20px 0;
+            opacity: 0.7;
+        }
+
+        .setup-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .setup-container h1 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .setup-container p {
+            color: #718096;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .setup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .setup-form input {
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .setup-form input:focus {
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .setup-form button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .setup-form button:hover {
+            background: #3182ce;
+        }
+
+        .room-info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #2b6cb0;
+        }
+
+        .room-link {
+            word-break: break-all;
+            color: #4299e1;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="setupContainer" class="setup-container">
+        <h1>Chat em Tempo Real</h1>
+        <p>Para conversar com outras pessoas, escolha um nome e crie ou entre em uma sala de chat. Compartilhe o link da sala com seus amigos!</p>
+        
+        <div class="setup-form">
+            <input 
+                type="text" 
+                id="usernameInput" 
+                placeholder="Seu nome" 
+                autocomplete="off"
+            />
+            <input 
+                type="text" 
+                id="roomInput" 
+                placeholder="Nome da sala (opcional)" 
+                autocomplete="off"
+            />
+            <button id="joinButton">Entrar no Chat</button>
+        </div>
+        
+        <div class="room-info" style="display: none;" id="roomInfo">
+            Sala: <span id="roomNameDisplay" class="room-link"></span>
+            <br>
+            Compartilhe este link: <span id="roomLink" class="room-link"></span>
+        </div>
+    </div>
+
+    <div id="chatContainer" class="chat-container" style="display: none;">
+        <div class="chat-header">
+            Chat em Tempo Real
+            <div class="connection-status" id="connectionStatus" title="Desconectado"></div>
+        </div>
+        <div class="messages-area" id="messagesArea">
+            <div class="no-messages">Nenhuma mensagem ainda. Seja o primeiro a enviar!</div>
+        </div>
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Digite sua mensagem..." 
+                autocomplete="off"
+            />
+            <button id="sendButton">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Elementos do DOM
+        const setupContainer = document.getElementById('setupContainer');
+        const chatContainer = document.getElementById('chatContainer');
+        const usernameInput = document.getElementById('usernameInput');
+        const roomInput = document.getElementById('roomInput');
+        const joinButton = document.getElementById('joinButton');
+        const roomInfo = document.getElementById('roomInfo');
+        const roomNameDisplay = document.getElementById('roomNameDisplay');
+        const roomLink = document.getElementById('roomLink');
+
+        const messagesArea = document.getElementById('messagesArea');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Variáveis de estado
+        let currentUser = '';
+        let currentRoom = '';
+        let socket = null;
+
+        // Funções auxiliares
+        function getRandomColor() {
+            const colors = ['#4299e1', '#48bb78', '#d69e2e', '#e53e3e', '#805ad5', '#ed64a6'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function getUserInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateConnectionStatus(connected) {
+            connectionStatus.classList.toggle('connected', connected);
+            connectionStatus.title = connected ? 'Conectado' : 'Desconectado';
+        }
+
+        function addMessage(text, isSent = false, sender = currentUser, timestamp = new Date()) {
+            const noMessages = messagesArea.querySelector('.no-messages');
+            if (noMessages) {
+                noMessages.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+            
+            const timeString = timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="user-info">
+                        <div class="user-avatar" style="background-color: ${isSent ? '#4299e1' : getRandomColor()}">
+                            ${getUserInitials(sender)}
+                        </div>
+                        <span>${sender}</span>
+                    </div>
+                    <span>${timeString}</span>
+                </div>
+                <div class="message-content">${escapeHtml(text)}</div>
+            `;
+            
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function showChat() {
+            setupContainer.style.display = 'none';
+            chatContainer.style.display = 'flex';
+            messageInput.focus();
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function updateRoomInfo() {
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('room', currentRoom);
+            if (currentUser) {
+                currentUrl.searchParams.set('user', currentUser);
+            }
+            
+            roomNameDisplay.textContent = currentRoom;
+            roomLink.textContent = currentUrl.toString();
+        }
+
+        // WebSocket functions
+        function connectWebSocket() {
+            try {
+                // Usando um serviço de WebSocket público para demonstração
+                // Em um ambiente real, você precisaria de um servidor WebSocket próprio
+                const wsUrl = `wss://echo.websocket.org`; // Serviço de teste
+                
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = function(event) {
+                    updateConnectionStatus(true);
+                    addMessage(`Bem-vindo ao chat "${currentRoom}"!`, false, 'Sistema');
+                    addMessage(`${currentUser} entrou na sala.`, false, 'Sistema');
+                };
+                
+                socket.onmessage = function(event) {
+                    // Em um sistema real, as mensagens conteriam dados estruturados
+                    // Aqui estamos simulando com mensagens de teste
+                    const mockSenders = ['Amigo', 'Colega', 'Parceiro', 'Conhecido'];
+                    const randomSender = mockSenders[Math.floor(Math.random() * mockSenders.length)];
+                    addMessage(event.data, false, randomSender);
+                };
+                
+                socket.onclose = function(event) {
+                    updateConnectionStatus(false);
+                    addMessage('Conexão perdida. Tentando reconectar...', false, 'Sistema');
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                socket.onerror = function(error) {
+                    updateConnectionStatus(false);
+                    addMessage('Erro de conexão. Verifique sua internet.', false, 'Sistema');
+                };
+            } catch (error) {
+                updateConnectionStatus(false);
+                addMessage('Erro ao conectar. Tente novamente.', false, 'Sistema');
+                setTimeout(connectWebSocket, 5000);
+            }
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                addMessage(message, true);
+                messageInput.value = '';
+            } else if (!message) {
+                messageInput.placeholder = 'Digite uma mensagem!';
+                setTimeout(() => {
+                    messageInput.placeholder = 'Digite sua mensagem...';
+                }, 2000);
+            } else {
+                addMessage('Aguardando conexão...', false, 'Sistema');
+            }
+        }
+
+        // Event Listeners
+        joinButton.addEventListener('click', function() {
+            const username = usernameInput.value.trim();
+            let room = roomInput.value.trim();
+            
+            if (!username) {
+                usernameInput.placeholder = 'Por favor, digite seu nome!';
+                setTimeout(() => {
+                    usernameInput.placeholder = 'Seu nome';
+                }, 2000);
+                return;
+            }
+            
+            if (!room) {
+                room = generateRoomId();
+                roomInput.value = room;
+            }
+            
+            currentUser = username;
+            currentRoom = room;
+            
+            // Atualizar URL para incluir sala e usuário
+            const url = new URL(window.location);
+            url.searchParams.set('room', currentRoom);
+            url.searchParams.set('user', currentUser);
+            window.history.pushState({}, '', url);
+            
+            updateRoomInfo();
+            roomInfo.style.display = 'block';
+            
+            showChat();
+            connectWebSocket();
+        });
+
+        usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinButton.click();
+            }
+        });
+
+        roomInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinButton.click();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        messageInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.style.borderColor = '#4299e1';
+            } else {
+                this.style.borderColor = '#e2e8f0';
+            }
+        });
+
+        // Inicialização
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const room = urlParams.get('room');
+            const user = urlParams.get('user');
+            
+            if (room) {
+                roomInput.value = room;
+            }
+            
+            if (user) {
+                usernameInput.value = user;
+            }
+            
+            // Focar no primeiro campo vazio
+            if (!usernameInput.value) {
+                usernameInput.focus();
+            } else if (!roomInput.value) {
+                roomInput.focus();
+            }
+        });
+
+        // Copiar link ao clicar
+        roomInfo.addEventListener('click', function(e) {
+            if (e.target === roomLink || e.target.parentNode === roomLink) {
+                navigator.clipboard.writeText(roomLink.textContent).then(() => {
+                    const originalText = roomLink.textContent;
+                    roomLink.textContent = 'Copiado!';
+                    setTimeout(() => {
+                        roomLink.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
